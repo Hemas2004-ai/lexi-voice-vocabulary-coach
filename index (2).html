@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lexi – Voice Vocabulary Coach</title>
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--ink:#1d1b16;--mute:#6b665a;--acc:#2f6f4f;--accink:#fff;--bad:#b3402a;--line:#e3dfd3;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#151512;--card:#201f1a;--ink:#f1eee4;--mute:#a49f90;--acc:#6fc79a;--accink:#10231a;--bad:#e8806a;--line:#34322a}}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+main{max-width:640px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:24px;margin:0}.sub{color:var(--mute);margin:2px 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:10px 14px;border-radius:12px;cursor:pointer}
+button.p{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
+button:disabled{opacity:.5}
+select,input[type=text]{font:inherit;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+input[type=text]{flex:1;min-width:0}
+#orb{width:84px;height:84px;border-radius:50%;margin:6px auto 10px;background:var(--acc);opacity:.35;transition:.2s}
+#orb.speak{opacity:1;animation:pulse 1s infinite}#orb.listen{opacity:1;background:var(--bad);animation:pulse .7s infinite}
+@keyframes pulse{50%{transform:scale(1.12)}}
+#status{text-align:center;color:var(--mute);min-height:24px}
+#stats{display:flex;justify-content:space-around;text-align:center}#stats b{display:block;font-size:22px}#stats span{color:var(--mute);font-size:13px}
+#log{max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.m{padding:9px 12px;border-radius:14px;max-width:88%}
+.a{background:var(--bg);border:1px solid var(--line);align-self:flex-start}
+.u{background:var(--acc);color:var(--accink);align-self:flex-end}
+.note{color:var(--mute);font-size:13px}
+</style></head><body><main>
+<h1>🎙️ Lexi</h1><p class="sub">Your voice vocabulary coach. Lexi reads a definition – you say the word.</p>
+
+<div class="card">
+<div id="orb"></div><div id="status">Press Start to begin</div>
+<div class="row" style="justify-content:center;margin-top:10px">
+<select id="level"><option value="easy">Level: Everyday</option><option value="hard">Level: Advanced</option><option value="all">Level: Mixed</option></select>
+<button class="p" id="start">▶ Start session</button>
+</div></div>
+
+<div class="card" id="stats"><div><b id="sc">0</b><span>Correct</span></div><div><b id="st">0</b><span>Streak</span></div><div><b id="pr">0/0</b><span>Progress</span></div></div>
+
+<div class="card"><div id="log"></div>
+<div class="row" style="margin-top:12px"><input type="text" id="typed" placeholder="Or type your answer…" autocomplete="off"><button id="send">Send</button></div>
+<div class="row" style="margin-top:8px"><button id="mic">🎤 Speak</button><button id="hint">💡 Hint</button><button id="rep">🔁 Repeat</button><button id="skip">⏭ Skip</button></div>
+<p class="note" id="note">Voice works best in Chrome, Edge or Safari. You can also say “hint”, “repeat” or “skip”.</p></div>
+</main>
+<script>
+const WORDS=[
+["ephemeral","easy","lasting for a very short time","The beauty of cherry blossoms is ephemeral."],
+["candid","easy","honest and direct, even when it is uncomfortable","She gave me a candid answer about my chances."],
+["reluctant","easy","unwilling and hesitant to do something","He was reluctant to speak in front of the class."],
+["meticulous","easy","showing great attention to detail","A meticulous editor, she caught every typo."],
+["resilient","easy","able to recover quickly from difficulty","Children are often more resilient than we expect."],
+["ambiguous","easy","open to more than one meaning","The ending of the film was deliberately ambiguous."],
+["frugal","easy","careful about spending money","Their frugal lifestyle let them retire early."],
+["eloquent","easy","fluent and persuasive in speaking or writing","Her eloquent speech moved the audience."],
+["pragmatic","easy","dealing with things in a practical, realistic way","We need a pragmatic solution, not a perfect one."],
+["gregarious","easy","fond of company and sociable","He is gregarious and loves hosting parties."],
+["obsequious","hard","too eager to please or obey someone important","The obsequious assistant agreed with every word the boss said."],
+["ubiquitous","hard","present or found everywhere","Smartphones have become ubiquitous."],
+["equivocal","hard","deliberately unclear, so as to avoid commitment","His equivocal reply left everyone guessing."],
+["pernicious","hard","having a harmful effect, often gradually","The pernicious rumor slowly ruined her reputation."],
+["laconic","hard","using very few words","His laconic reply was simply, fine."],
+["inscrutable","hard","impossible to understand or interpret","The judge's face was inscrutable."],
+["capricious","hard","given to sudden, unpredictable changes of mood","The capricious weather ruined our picnic."],
+["magnanimous","hard","generous and forgiving, especially toward a rival","The magnanimous winner praised her opponent."],
+["sycophant","hard","a person who flatters the powerful to gain advantage","The king was surrounded by sycophants."],
+["ostentatious","hard","designed to impress or attract attention, showy","They lived in an ostentatious mansion."]
+].map(([w,l,d,e])=>({w,l,d,e}));
+const $=id=>document.getElementById(id);
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const synth=window.speechSynthesis;
+let S=null,rec=null,voiceOK=!!SR,busy=false,token=0;
+
+function log(t,c){const d=document.createElement('div');d.className='m '+c;d.textContent=t;$('log').appendChild(d);$('log').scrollTop=1e6}
+function setUI(state,text){$('orb').className=state||'';$('status').textContent=text||''}
+function stats(){$('sc').textContent=S?S.score:0;$('st').textContent=S?S.streak:0;$('pr').textContent=S?Math.min(S.done,S.total)+'/'+S.total:'0/0'}
+
+function say(text){return new Promise(res=>{log(text,'a');if(!synth){res();return}
+ synth.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=.95;u.lang='en-US';
+ const v=synth.getVoices().find(v=>/en[-_]US/.test(v.lang)&&/natural|google|samantha|aria|jenny/i.test(v.name))||synth.getVoices().find(v=>/^en/.test(v.lang));if(v)u.voice=v;
+ u.onstart=()=>setUI('speak','Lexi is speaking…');u.onend=u.onerror=()=>{setUI('','');res()};synth.speak(u);})}
+
+function listen(){return new Promise(res=>{if(!voiceOK){res(null);return}
+ try{rec=new SR()}catch(e){voiceOK=false;res(null);return}
+ rec.lang='en-US';rec.maxAlternatives=5;rec.interimResults=false;let got=null;
+ rec.onstart=()=>setUI('listen','Listening… say the word');
+ rec.onresult=e=>{got=[...e.results[0]].map(a=>a.transcript)};
+ rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){voiceOK=false;$('note').textContent='Microphone blocked – type your answers instead, or allow mic access and reload.'}};
+ rec.onend=()=>{setUI('','');res(got)};
+ try{rec.start()}catch(e){res(null)}})}
+
+const norm=s=>s.toLowerCase().replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
+function lev(a,b){const m=[...Array(a.length+1)].map((_,i)=>[i]);for(let j=1;j<=b.length;j++)m[0][j]=j;
+ for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)m[i][j]=Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return m[a.length][b.length]}
+function isMatch(alts,w){return alts.some(a=>norm(a).split(' ').some(t=>t===w||(w.length>6&&lev(t,w)<=2)||(w.length>4&&lev(t,w)<=1)))}
+function cmd(alts){const t=alts.map(norm).join('|');
+ if(/\b(skip|next|pass|i don t know|dont know)\b/.test(t))return'skip';
+ if(/\bhint|clue|help\b/.test(t))return'hint';
+ if(/\b(repeat|again|say that)\b/.test(t))return'repeat';return null}
+
+function start(){
+ synth&&synth.cancel();rec&&rec.abort&&rec.abort();token++;
+ const lv=$('level').value;let pool=WORDS.filter(x=>lv==='all'||x.l===lv).sort(()=>Math.random()-.5).slice(0,6);
+ S={q:pool,i:0,score:0,streak:0,done:0,total:pool.length,tries:0,hints:0,missed:[]};
+ $('log').innerHTML='';stats();$('start').textContent='↻ Restart';
+ run(token,true);
+}
+async function run(tk,first){
+ if(tk!==token)return;
+ if(S.i>=S.q.length){
+  if(S.missed.length&&!S.retry){S.retry=true;S.q=S.q.concat(S.missed);S.missed=[];S.total=S.q.length;
+   await say("Let's give the tricky ones another try.");}
+  else{await say(`Session complete! You got ${S.score} right out of ${S.total}. Keep it up – press Restart for a fresh set.`);setUI('','Done 🎉');return}
+ }
+ const cur=S.q[S.i];S.tries=0;S.hints=0;stats();
+ let intro=first?"Hi, I'm Lexi! I'll read a definition, and you say the word. ":"";
+ await say(`${intro}Word ${S.i+1}. It means: ${cur.d}. What's the word?`);
+ turn(tk);
+}
+async function turn(tk){
+ if(tk!==token||busy)return;
+ const cur=S.q[S.i];
+ if(!voiceOK){setUI('','Type your answer below');return}
+ busy=true;const alts=await listen();busy=false;if(tk!==token)return;
+ if(!alts){setUI('',"Didn't catch that – tap 🎤 Speak or type");return}
+ handle(alts.join(' / ').split(' / ')[0],alts);
+}
+async function handle(shown,alts){
+ if(!S)return;const tk=token,cur=S.q[S.i];log(shown,'u');
+ const c=cmd(alts);
+ if(c==='hint')return hint();
+ if(c==='repeat'){await say(`It means: ${cur.d}.`);return turn(tk)}
+ if(c==='skip'){S.streak=0;S.missed.push(cur);await say(`No problem. The word was ${cur.w}, spelled ${cur.w.split('').join(', ')}. Example: ${cur.e}`);return next(tk)}
+ if(isMatch(alts,cur.w)){
+  S.score++;S.streak++;S.done++;stats();
+  const praise=["Correct!","Nice one!","Exactly right!","Well done!"][S.streak%4];
+  await say(`${praise} ${cur.w}. For example: ${cur.e}`);return next(tk);
+ }
+ S.tries++;S.streak=0;stats();
+ if(S.tries>=2){S.missed.push(cur);S.done++;stats();await say(`Not quite. The word is ${cur.w}, spelled ${cur.w.split('').join(', ')}. Example: ${cur.e}`);return next(tk)}
+ await say(`Close, but not quite. Try once more, or say hint.`);turn(tk);
+}
+async function hint(){
+ if(!S)return;const tk=token,cur=S.q[S.i];S.hints++;
+ const h=S.hints===1?`It starts with "${cur.w[0].toUpperCase()}" and has ${cur.w.length} letters.`:`Fill in the blank: ${cur.e.replace(new RegExp(cur.w,'i'),'blank')}`;
+ await say(h);turn(tk);
+}
+function next(tk){if(tk!==token)return;S.i++;run(tk)}
+
+$('start').onclick=start;
+$('send').onclick=submit;$('typed').onkeydown=e=>{if(e.key==='Enter')submit()};
+function submit(){const v=$('typed').value.trim();if(!v||!S)return;$('typed').value='';rec&&rec.abort&&rec.abort();synth&&synth.cancel();busy=false;handle(v,[v])}
+$('mic').onclick=()=>{if(!S)return;if(!SR){$('note').textContent='Speech recognition isn’t supported in this browser – please type.';return}voiceOK=true;synth&&synth.cancel();rec&&rec.abort&&rec.abort();busy=false;turn(token)};
+$('hint').onclick=()=>{synth&&synth.cancel();rec&&rec.abort&&rec.abort();busy=false;hint()};
+$('rep').onclick=async()=>{if(!S)return;synth&&synth.cancel();rec&&rec.abort&&rec.abort();busy=false;await say(`It means: ${S.q[S.i].d}.`);turn(token)};
+$('skip').onclick=()=>{if(!S)return;synth&&synth.cancel();rec&&rec.abort&&rec.abort();busy=false;handle('skip',['skip'])};
+if(!SR)$('note').textContent='Speech recognition isn’t available in this browser, so Lexi will talk and you can type answers. Try Chrome or Safari for full voice.';
+if(synth)synth.getVoices();
+</script></body></html>
