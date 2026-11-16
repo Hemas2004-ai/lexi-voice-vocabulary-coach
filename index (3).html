@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Lexi – Voice Vocabulary Coach</title>
+<meta name="description" content="Lexi is a voice vocabulary coach. Hear a definition, say the word, and build your vocabulary through conversation.">
+<meta name="theme-color" content="#f3ecfb">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#2b2650;--mute:#6f6a95;--soft:#9d98c0;
+  --violet:#7c5cff;--violet2:#a78bff;--pink:#ff8ac6;--cyan:#6fe3ff;--mint:#5fd8ab;--rose:#ff8fa8;--amber:#ffc46b;
+  --glass:rgba(255,255,255,.55);--glass2:rgba(255,255,255,.80);--stroke:rgba(255,255,255,.9);
+  --shadow:0 28px 60px -26px rgba(124,92,255,.35),0 1px 0 rgba(255,255,255,.7) inset;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:'Manrope',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--ink);min-height:100vh;overflow-x:hidden;
+  background:radial-gradient(900px 600px at 8% 6%,rgba(255,170,210,.55),transparent 60%),radial-gradient(800px 600px at 96% 10%,rgba(190,170,255,.45),transparent 60%),radial-gradient(900px 700px at 82% 98%,rgba(130,215,255,.5),transparent 60%),linear-gradient(135deg,#fdeef7,#f1eafd 50%,#e6f3fd);
+  background-attachment:fixed}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+:focus-visible{outline:3px solid rgba(124,92,255,.55);outline-offset:3px;border-radius:14px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- layers ---------- */
+#gl{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0;transition:opacity 1s ease}
+.gl-on #gl{opacity:1}
+.bgfx{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.panel{position:absolute;border-radius:40px;background:rgba(255,255,255,.26);border:1px solid rgba(255,255,255,.65);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 30px 60px -30px rgba(124,92,255,.25)}
+.p1{width:340px;height:210px;left:-120px;bottom:-70px;transform:rotate(-12deg);animation:drift 18s ease-in-out infinite alternate}
+.p2{width:300px;height:190px;right:-80px;top:8%;transform:rotate(10deg);animation:drift 22s ease-in-out -6s infinite alternate}
+.p3{width:380px;height:220px;right:6%;bottom:-70px;transform:rotate(-8deg);animation:drift 20s ease-in-out -11s infinite alternate}
+@keyframes drift{to{translate:26px -22px}}
+
+/* ---------- glass ---------- */
+.glass{background:var(--glass);border:1px solid var(--stroke);border-radius:28px;backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);box-shadow:var(--shadow)}
+
+/* ---------- navigation ---------- */
+.nav{position:fixed;z-index:30;top:14px;left:50%;transform:translateX(-50%);width:min(1120px,calc(100% - 28px));height:62px;border-radius:999px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 20px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2em;font-size:15px}
+.logo i{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#fff 0 12%,transparent 30%),linear-gradient(145deg,#ffa5d4,#b9a6ff 52%,#7fe6ff);box-shadow:inset -3px -4px 8px rgba(124,92,255,.35),0 4px 10px rgba(124,92,255,.3)}
+.links{display:flex;gap:2px}
+.links button{padding:9px 15px;border-radius:999px;font-weight:600;font-size:14px;color:var(--mute);transition:.25s}
+.links button:hover{color:var(--ink);background:rgba(255,255,255,.5)}
+.links button[aria-current=page]{background:var(--glass2);color:var(--violet);box-shadow:0 6px 16px -8px rgba(124,92,255,.5)}
+.navcta{padding:10px 20px}
+.tabbar{display:none}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 26px;border-radius:999px;font-weight:700;font-size:15px;background:var(--glass2);border:1px solid var(--stroke);box-shadow:0 10px 24px -14px rgba(124,92,255,.5);transition:transform .2s,box-shadow .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn.primary{background:linear-gradient(135deg,#8b6bff,#c58bff 55%,#ff8ac6);color:#fff;border-color:rgba(255,255,255,.5);box-shadow:0 16px 32px -12px rgba(124,92,255,.65)}
+.btn.sm{padding:10px 18px;font-size:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:999px;font-weight:600;font-size:14px;background:rgba(255,255,255,.7);border:1px solid var(--stroke);transition:.2s}
+.pill:hover{background:#fff;transform:translateY(-1px)}
+
+/* ---------- layout ---------- */
+main{position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:104px 20px 90px}
+.view{display:none}
+.view.on{display:block;animation:viewIn .55s cubic-bezier(.2,.8,.2,1)}
+@keyframes viewIn{from{opacity:0;transform:translateY(14px)}}
+.vhead{display:flex;align-items:center;gap:18px;margin-bottom:26px}
+.vhead h2{font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:-.02em}
+.vhead p{color:var(--mute);margin-top:4px;font-weight:500}
+
+/* ---------- orb slots ---------- */
+.slot{position:relative;flex:none}
+.slot::after{content:'';position:absolute;left:12%;right:12%;bottom:-6%;height:9%;border-radius:50%;background:radial-gradient(ellipse,rgba(124,92,255,.32),transparent 70%);filter:blur(6px)}
+.slot-sm{width:74px;height:74px}
+.slot-md{width:var(--os,min(230px,52vw));aspect-ratio:1;margin:0 auto}
+.slot-lg{width:min(360px,64vw,calc(100vh - 470px));min-width:210px;aspect-ratio:1}
+.css-orb{position:absolute;inset:0;border-radius:50%;transition:opacity .8s;animation:float 7s ease-in-out infinite;
+  background:radial-gradient(circle at 30% 22%,#fff 0 5%,rgba(255,255,255,0) 20%),radial-gradient(circle at 72% 80%,rgba(111,227,255,.95),transparent 56%),radial-gradient(circle at 24% 46%,rgba(255,138,198,.95),transparent 62%),linear-gradient(145deg,#ffc0e0,#bda9ff 52%,#92ebff);
+  box-shadow:inset -14px -20px 46px rgba(124,92,255,.28),inset 10px 12px 34px rgba(255,255,255,.8),0 34px 60px -20px rgba(124,92,255,.4)}
+.gl-on .css-orb{opacity:0}
+@keyframes float{50%{transform:translateY(-10px)}}
+body[data-orb=listen] .css-orb{animation:pulse 1.4s ease-in-out infinite}
+body[data-orb=speak] .css-orb{animation:pulse .7s ease-in-out infinite;filter:brightness(1.08)}
+body[data-orb=think] .css-orb{animation:spin 3s linear infinite}
+@keyframes pulse{50%{transform:scale(1.05)}}
+@keyframes spin{to{filter:hue-rotate(40deg) brightness(1.05)}}
+
+/* ---------- HOME ---------- */
+.hero{text-align:center;padding-top:6px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:999px;background:rgba(255,255,255,.6);border:1px solid var(--stroke);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--violet)}
+.hero h1{font-size:clamp(46px,8vw,92px);font-weight:800;letter-spacing:-.04em;line-height:1;margin:16px 0 10px}
+.grad{background:linear-gradient(120deg,#ff7fc1,#9a78ff 50%,#4fd2ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .sub{font-size:clamp(17px,2.2vw,22px);font-weight:700;color:var(--ink)}
+.hero .desc{max-width:520px;margin:8px auto 0;color:var(--mute);font-weight:500;line-height:1.6}
+.stage{position:relative;display:grid;place-items:center;width:min(780px,100%);margin:10px auto 0;padding:10px 0}
+.fc{position:absolute;display:flex;align-items:center;gap:9px;padding:11px 18px 11px 14px;border-radius:18px;font-weight:700;font-size:15px;background:rgba(255,255,255,.62);border:1px solid var(--stroke);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 18px 34px -18px rgba(124,92,255,.5);animation:bob 6s ease-in-out infinite}
+.fc b{width:9px;height:9px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--violet2))}
+.fc small{color:var(--soft);font-weight:600;font-size:12px}
+.fc1{left:4%;top:14%}.fc2{right:3%;top:6%;animation-delay:-1.5s}.fc3{left:9%;bottom:12%;animation-delay:-3s}.fc4{right:6%;bottom:16%;animation-delay:-4.5s}
+@keyframes bob{50%{transform:translateY(-12px)}}
+.ctas{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.how{margin-top:90px;text-align:center;scroll-margin-top:90px}
+.how h2{font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:-.02em}
+.how>p{color:var(--mute);margin-top:6px;font-weight:500}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:30px;text-align:left}
+.step{padding:28px}
+.step .n{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--violet),var(--pink));box-shadow:0 12px 22px -10px rgba(124,92,255,.7)}
+.step h3{margin:16px 0 6px;font-size:19px}
+.step p{color:var(--mute);line-height:1.6;font-weight:500;font-size:15px}
+.strip{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:22px}
+.strip span{padding:9px 18px;border-radius:999px;background:rgba(255,255,255,.6);border:1px solid var(--stroke);font-weight:700;font-size:13px;color:var(--mute)}
+
+/* ---------- PRACTICE ---------- */
+.pgrid{display:grid;grid-template-columns:minmax(320px,430px) 1fr;gap:24px;align-items:start}
+.pcard{--os:min(230px,52vw);padding:26px 24px 24px;text-align:center;position:relative;isolation:isolate;background:none;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.pcard::before{content:'';position:absolute;inset:0;z-index:-1;border-radius:28px;background:var(--glass);border:1px solid var(--stroke);backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);box-shadow:var(--shadow);
+  -webkit-mask-image:radial-gradient(circle at 50% calc(26px + var(--os)/2),transparent calc(var(--os)/2 - 4px),#000 calc(var(--os)/2 + 44px));mask-image:radial-gradient(circle at 50% calc(26px + var(--os)/2),transparent calc(var(--os)/2 - 4px),#000 calc(var(--os)/2 + 44px))}
+.status{min-height:24px;margin-top:14px;font-weight:700;color:var(--violet)}
+.wave{display:flex;align-items:center;justify-content:center;gap:4px;height:44px;margin:10px 0 4px}
+.wave i{width:4px;height:36px;border-radius:4px;background:linear-gradient(180deg,var(--violet2),var(--pink));transform:scaleY(.14);transition:transform .3s}
+body[data-orb=listen] .wave i,body[data-orb=speak] .wave i{animation:wv var(--s,1s) ease-in-out infinite;animation-delay:calc(var(--i)*-.07s)}
+body[data-orb=think] .wave i{animation:wv 1.8s ease-in-out infinite;animation-delay:calc(var(--i)*-.1s);opacity:.55}
+body[data-orb=listen] .wave{--s:1.3s}body[data-orb=speak] .wave{--s:.7s}
+@keyframes wv{0%,100%{transform:scaleY(.14)}50%{transform:scaleY(var(--a,.7))}}
+.microw{display:flex;align-items:center;justify-content:center;gap:16px;margin:10px 0 18px}
+.mic{position:relative;width:78px;height:78px;border-radius:50%;display:grid;place-items:center;color:#fff;background:linear-gradient(145deg,#8b6bff,#c58bff 55%,#ff8ac6);box-shadow:0 20px 34px -12px rgba(124,92,255,.7),inset 0 2px 0 rgba(255,255,255,.5);transition:transform .2s}
+.mic:hover{transform:scale(1.06)}
+.mic svg{width:32px;height:32px}
+.mic::before,.mic::after{content:'';position:absolute;inset:0;border-radius:50%;border:2px solid rgba(139,107,255,.55);opacity:0}
+body[data-orb=listen] .mic::before{animation:ring 1.6s ease-out infinite}
+body[data-orb=listen] .mic::after{animation:ring 1.6s ease-out .8s infinite}
+@keyframes ring{from{opacity:.9;transform:scale(1)}to{opacity:0;transform:scale(1.9)}}
+.row2{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center}
+select.pill{appearance:none;-webkit-appearance:none;padding-right:34px;background:rgba(255,255,255,.7) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%237c5cff' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 14px center}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}
+.chip{padding:14px 8px;border-radius:20px;background:rgba(255,255,255,.62);border:1px solid var(--stroke)}
+.chip b{display:block;font-size:24px;font-weight:800;color:var(--violet)}
+.chip span{font-size:12px;font-weight:600;color:var(--mute)}
+.bar{height:8px;border-radius:99px;background:rgba(124,92,255,.14);margin-top:16px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--violet),var(--pink));transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.note{font-size:12.5px;color:var(--mute);margin-top:12px;line-height:1.5;font-weight:500}
+.ccard{display:flex;flex-direction:column;height:min(680px,calc(100vh - 220px));min-height:420px}
+.chead{padding:20px 24px 14px;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+.chead small{font-weight:600;color:var(--mute)}
+.log{flex:1;overflow-y:auto;padding:4px 20px 12px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
+.empty{margin:auto;text-align:center;color:var(--soft);font-weight:600;line-height:1.6;padding:20px}
+.m{max-width:86%;padding:13px 17px;border-radius:22px;line-height:1.5;font-weight:500;font-size:15px;animation:pop .35s cubic-bezier(.2,.8,.2,1);word-wrap:break-word}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.97)}}
+.m.a{align-self:flex-start;background:rgba(255,255,255,.88);border:1px solid #fff;border-bottom-left-radius:8px;box-shadow:0 10px 22px -16px rgba(124,92,255,.5)}
+.m.u{align-self:flex-end;background:linear-gradient(135deg,rgba(167,139,255,.9),rgba(196,160,255,.85));color:#fff;border-bottom-right-radius:8px;box-shadow:0 12px 24px -14px rgba(124,92,255,.7)}
+.m.ok{border-left:4px solid var(--mint)}
+.m.no{border-left:4px solid var(--rose)}
+.m.hint{border-left:4px solid var(--amber)}
+.m .tag{display:inline-block;margin-right:8px;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:800;vertical-align:1px}
+.m.ok .tag{background:rgba(95,216,171,.22);color:#1f9a72}
+.m.no .tag{background:rgba(255,143,168,.25);color:#d34a6b}
+.m.hint .tag{background:rgba(255,196,107,.3);color:#a76f10}
+.inrow{display:flex;gap:10px;padding:14px 18px 18px}
+.inrow input{flex:1;min-width:0;padding:15px 20px;border-radius:999px;border:1px solid var(--stroke);background:rgba(255,255,255,.75);outline:none;font-weight:500}
+.inrow input:focus{box-shadow:0 0 0 3px rgba(124,92,255,.25)}
+
+/* ---------- WORD BANK ---------- */
+.tools{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
+.search{flex:1;min-width:200px;padding:14px 20px;border-radius:999px;border:1px solid var(--stroke);background:rgba(255,255,255,.7);outline:none;font-weight:500}
+.filters{display:flex;gap:8px}
+.filters button[aria-pressed=true]{background:linear-gradient(135deg,#8b6bff,#c58bff);color:#fff}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.wcard{padding:22px;display:flex;flex-direction:column;gap:8px}
+.wcard h3{font-size:22px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lv{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:99px;background:rgba(111,227,255,.25);color:#1a86a8}
+.lv.hard{background:rgba(255,138,198,.25);color:#c23c88}
+.wcard p{color:var(--mute);line-height:1.55;font-weight:500;font-size:14.5px}
+.wcard .ex{font-style:italic;color:var(--soft);font-size:13.5px}
+.wfoot{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:8px}
+.learned{font-size:12px;font-weight:800;color:#1f9a72}
+.say{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.8);border:1px solid var(--stroke);color:var(--violet)}
+.say:hover{background:#fff}
+
+/* ---------- PROGRESS ---------- */
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.scard{padding:20px;display:flex;align-items:center;gap:14px}
+.ring{width:66px;height:66px;flex:none;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:14px;color:var(--violet)}
+.scard b{display:block;font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.scard small{color:var(--mute);font-weight:600;font-size:13px}
+.pgrid2{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;margin-top:16px}
+.card{padding:24px}
+.card h3{font-size:17px;font-weight:800;margin-bottom:16px;display:flex;justify-content:space-between;align-items:baseline}
+.card h3 small{font-weight:600;color:var(--mute);font-size:13px}
+.lp{display:flex;align-items:center;gap:22px}
+.lp .ring{width:104px;height:104px}.lp .ring span{font-size:22px}
+.lvbars{flex:1;display:flex;flex-direction:column;gap:14px}
+.lvbars div>div{display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:var(--mute);margin-bottom:6px}
+.chart{display:flex;align-items:flex-end;gap:12px;height:150px;padding-top:10px}
+.chart div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%}
+.chart i{display:block;width:100%;max-width:34px;border-radius:12px 12px 6px 6px;background:linear-gradient(180deg,var(--violet2),var(--pink));min-height:6px;transition:height .7s cubic-bezier(.2,.8,.2,1)}
+.chart em{font-style:normal;font-size:12px;font-weight:700;color:var(--mute)}
+.chart b{font-size:12px;color:var(--violet)}
+.act{display:flex;flex-direction:column;gap:6px}
+.act div{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:16px;background:rgba(255,255,255,.55);font-weight:600;font-size:14px}
+.act i{width:10px;height:10px;border-radius:50%;flex:none}
+.act span{margin-left:auto;color:var(--soft);font-size:12px;font-weight:600}
+.act em{font-style:normal;color:var(--mute);font-weight:500}
+.none{color:var(--soft);font-weight:600;padding:8px 2px;line-height:1.6}
+
+/* ---------- HISTORY ---------- */
+.hlist{display:flex;flex-direction:column;gap:12px}
+details.hs{padding:0;overflow:hidden}
+details.hs summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:16px;padding:18px 22px;font-weight:700}
+details.hs summary::-webkit-details-marker{display:none}
+details.hs summary span{margin-left:auto;color:var(--violet);font-weight:800}
+details.hs summary small{color:var(--mute);font-weight:600}
+details.hs[open] summary{border-bottom:1px solid rgba(124,92,255,.12)}
+.hmsgs{padding:16px 20px 20px;display:flex;flex-direction:column;gap:10px;max-height:420px;overflow:auto}
+
+/* ---------- SETTINGS ---------- */
+.set{max-width:680px;padding:8px 26px}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:20px 0;border-bottom:1px solid rgba(124,92,255,.12)}
+.srow:last-child{border:0}
+.srow b{display:block;font-weight:700}
+.srow small{color:var(--mute);font-weight:500;line-height:1.5}
+.sw{position:relative;width:54px;height:32px;flex:none}
+.sw input{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:1}
+.sw i{position:absolute;inset:0;border-radius:99px;background:rgba(124,92,255,.2);transition:.25s}
+.sw i::after{content:'';position:absolute;left:4px;top:4px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(43,38,80,.25);transition:.25s}
+.sw input:checked+i{background:linear-gradient(135deg,#8b6bff,#c58bff)}
+.sw input:checked+i::after{transform:translateX(22px)}
+.sw input:focus-visible+i{outline:3px solid rgba(124,92,255,.55);outline-offset:3px}
+input[type=range]{width:170px;accent-color:var(--violet)}
+.danger{color:#d34a6b}
+
+footer{position:relative;z-index:2;text-align:center;padding:10px 20px 40px;color:var(--soft);font-weight:600;font-size:13px}
+
+/* ---------- responsive ---------- */
+@media (max-width:900px){
+  .links{display:none}.navcta{display:none}.nav{justify-content:center}
+  .tabbar{display:flex;position:fixed;z-index:30;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(520px,calc(100% - 24px));justify-content:space-around;padding:8px;border-radius:999px}
+  .tabbar button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 10px;border-radius:999px;font-size:10.5px;font-weight:700;color:var(--mute);min-width:52px}
+  .tabbar svg{width:22px;height:22px}
+  .tabbar button[aria-current=page]{background:var(--glass2);color:var(--violet)}
+  main{padding-top:92px;padding-bottom:110px}
+  .pgrid{grid-template-columns:1fr}.ccard{height:420px}
+  .steps{grid-template-columns:1fr}.sgrid{grid-template-columns:repeat(2,1fr)}.pgrid2{grid-template-columns:1fr}
+  .slot-lg{width:min(300px,64vw)}
+  .fc{font-size:13px;padding:8px 13px 8px 11px}.fc small{display:none}
+  .fc1{left:0;top:6%}.fc2{right:0;top:2%}.fc3{left:2%;bottom:6%}.fc4{right:1%;bottom:10%}
+  .lp{flex-direction:column;align-items:flex-start}
+}
+@media (max-width:480px){.sgrid{grid-template-columns:1fr}.hero h1{font-size:50px}.btn{padding:13px 22px}}
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+html[data-motion=reduce] *,html[data-motion=reduce] *::before,html[data-motion=reduce] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+</style>
+</head>
+<body data-orb="" data-view="home">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+<symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h13a1 1 0 0 1 1 1v14H7a2 2 0 0 0-2 2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 8h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M5 20v-7M12 20V5M19 20v-10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-speaker" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs></svg>
+
+<canvas id="gl" aria-hidden="true"></canvas>
+<div class="bgfx" aria-hidden="true"><div class="panel p1"></div><div class="panel p2"></div><div class="panel p3"></div></div>
+
+<header class="nav glass">
+  <div class="logo"><i></i>LEXI</div>
+  <nav class="links" aria-label="Main">
+    <button data-go="home">Home</button><button data-go="practice">Practice</button><button data-go="bank">Word Bank</button><button data-go="progress">Progress</button><button data-go="history">History</button><button data-go="settings">Settings</button>
+  </nav>
+  <button class="btn primary sm navcta" data-go="practice" data-start>Start Practicing</button>
+</header>
+
+<nav class="tabbar glass" aria-label="Main">
+  <button data-go="home"><svg><use href="#i-home"/></svg>Home</button>
+  <button data-go="practice"><svg><use href="#i-mic"/></svg>Practice</button>
+  <button data-go="bank"><svg><use href="#i-book"/></svg>Words</button>
+  <button data-go="progress"><svg><use href="#i-chart"/></svg>Progress</button>
+  <button data-go="history"><svg><use href="#i-clock"/></svg>History</button>
+  <button data-go="settings"><svg><use href="#i-gear"/></svg>Settings</button>
+</nav>
+
+<main>
+<!-- ================= HOME ================= -->
+<section class="view on" id="v-home" aria-label="Home">
+  <div class="hero">
+    <span class="eyebrow">✦ AI voice coach</span>
+    <h1>Meet <span class="grad">Lexi</span></h1>
+    <p class="sub">Your Voice Vocabulary Coach.</p>
+    <p class="desc">Learn, speak, and build your vocabulary naturally through conversation.</p>
+    <div class="stage">
+      <div class="slot slot-lg" data-slot><div class="css-orb"></div></div>
+      <div class="fc fc1"><b></b>practical <small>adj.</small></div>
+      <div class="fc fc2"><b></b>resilient <small>adj.</small></div>
+      <div class="fc fc3"><b></b>innovative <small>adj.</small></div>
+      <div class="fc fc4"><b></b>efficient <small>adj.</small></div>
+    </div>
+    <div class="ctas">
+      <button class="btn primary" data-go="practice" data-start>Start Practicing</button>
+      <button class="btn" id="howbtn">How it Works</button>
+    </div>
+  </div>
+  <section class="how" id="how" aria-label="How it works">
+    <h2>How it works</h2>
+    <p>Three simple steps, one friendly voice.</p>
+    <div class="steps">
+      <div class="glass step"><div class="n">1</div><h3>Listen</h3><p>Lexi reads out a definition. Press the mic, or just wait – she'll listen for your answer.</p></div>
+      <div class="glass step"><div class="n">2</div><h3>Speak</h3><p>Say the word out loud, or type it. Lexi forgives small slips, so a near miss still counts.</p></div>
+      <div class="glass step"><div class="n">3</div><h3>Improve</h3><p>Ask for a hint, get instant feedback, and revisit the tricky words at the end of each session.</p></div>
+    </div>
+    <div class="strip"><span>20 words</span><span>Everyday &amp; Advanced</span><span>Voice + text</span><span>Hints &amp; retries</span></div>
+  </section>
+</section>
+
+<!-- ================= PRACTICE ================= -->
+<section class="view" id="v-practice" aria-label="Practice">
+  <div class="vhead"><div><h2>Practice</h2><p>Lexi reads a definition – you say the word.</p></div></div>
+  <div class="pgrid">
+    <div class="glass pcard">
+      <div class="slot slot-md" data-slot><div class="css-orb"></div></div>
+      <div class="status" id="status" aria-live="polite">Press Start to begin</div>
+      <div class="wave" id="wave" aria-hidden="true"></div>
+      <div class="microw">
+        <button class="pill" id="hint">💡 Hint</button>
+        <button class="mic" id="mic" aria-label="Speak your answer"><svg><use href="#i-mic"/></svg></button>
+        <button class="pill" id="rep">🔁 Repeat</button>
+      </div>
+      <div class="row2">
+        <select id="level" class="pill" aria-label="Vocabulary level"><option value="easy">Level: Everyday</option><option value="hard">Level: Advanced</option><option value="all">Level: Mixed</option></select>
+        <button class="btn primary sm" id="start">▶ Start</button>
+        <button class="pill" id="skip">⏭ Skip</button>
+      </div>
+      <div class="chips">
+        <div class="chip"><b id="sc">0</b><span>Correct</span></div>
+        <div class="chip"><b id="st">0</b><span>Streak</span></div>
+        <div class="chip"><b id="pr">0/0</b><span>Progress</span></div>
+      </div>
+      <div class="bar" aria-hidden="true"><i id="prbar"></i></div>
+      <div class="note" id="note"></div>
+    </div>
+    <div class="glass ccard">
+      <div class="chead">Conversation <small id="cnt"></small></div>
+      <div class="log" id="log" role="log" aria-live="polite"></div>
+      <div class="inrow"><input id="typed" type="text" placeholder="Type your answer…" autocomplete="off" aria-label="Type your answer"><button class="btn primary sm" id="send">Send</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= WORD BANK ================= -->
+<section class="view" id="v-bank" aria-label="Word bank">
+  <div class="vhead"><div class="slot slot-sm" data-slot><div class="css-orb"></div></div><div><h2>Word Bank</h2><p>Every word Lexi can teach you. Tap the speaker to hear it.</p></div></div>
+  <div class="tools">
+    <input class="search" id="bsearch" type="search" placeholder="Search words or meanings…" aria-label="Search words">
+    <div class="filters" role="group" aria-label="Filter by level">
+      <button class="pill" data-f="all" aria-pressed="true">All</button><button class="pill" data-f="easy" aria-pressed="false">Everyday</button><button class="pill" data-f="hard" aria-pressed="false">Advanced</button>
+    </div>
+  </div>
+  <div class="wgrid" id="wgrid"></div>
+</section>
+
+<!-- ================= PROGRESS ================= -->
+<section class="view" id="v-progress" aria-label="Progress">
+  <div class="vhead"><div class="slot slot-sm" data-slot><div class="css-orb"></div></div><div><h2>Progress</h2><p>Your learning, at a glance.</p></div></div>
+  <div class="sgrid" id="sgrid"></div>
+  <div class="pgrid2">
+    <div class="glass card"><h3>Learning progress <small id="lpsub"></small></h3><div class="lp" id="lp"></div></div>
+    <div class="glass card"><h3>Last 7 days <small>correct answers</small></h3><div class="chart" id="chart"></div></div>
+  </div>
+  <div class="glass card" style="margin-top:16px"><h3>Recent vocabulary activity</h3><div class="act" id="act"></div></div>
+</section>
+
+<!-- ================= HISTORY ================= -->
+<section class="view" id="v-history" aria-label="Conversation history">
+  <div class="vhead"><div class="slot slot-sm" data-slot><div class="css-orb"></div></div><div><h2>Conversation History</h2><p>Your recent practice sessions with Lexi.</p></div></div>
+  <div class="hlist" id="hlist"></div>
+</section>
+
+<!-- ================= SETTINGS ================= -->
+<section class="view" id="v-settings" aria-label="Settings">
+  <div class="vhead"><div class="slot slot-sm" data-slot><div class="css-orb"></div></div><div><h2>Settings</h2><p>Make Lexi work the way you like.</p></div></div>
+  <div class="glass set">
+    <div class="srow"><div><b>Lexi speaks aloud</b><small>Turn off to read questions silently and answer by typing.</small></div><label class="sw"><input type="checkbox" id="s-speak"><i></i><span class="sr">Lexi speaks aloud</span></label></div>
+    <div class="srow"><div><b>Speaking speed</b><small id="s-ratev"></small></div><input type="range" id="s-rate" min="0.7" max="1.2" step="0.05" aria-label="Speaking speed"></div>
+    <div class="srow"><div><b>Default level</b><small>Used when you open Lexi.</small></div><select class="pill" id="s-level"><option value="easy">Everyday</option><option value="hard">Advanced</option><option value="all">Mixed</option></select></div>
+    <div class="srow"><div><b>Words per session</b><small>Missed words are asked again at the end.</small></div><select class="pill" id="s-count"><option>4</option><option>6</option><option>8</option><option>10</option></select></div>
+    <div class="srow"><div><b>Reduce motion</b><small>Calms the 3D orb and animations. Follows your device setting automatically.</small></div><label class="sw"><input type="checkbox" id="s-reduce"><i></i><span class="sr">Reduce motion</span></label></div>
+    <div class="srow"><div><b class="danger">Reset saved progress</b><small>Clears stats, history and settings stored in this browser.</small></div><button class="pill danger" id="s-clear">Reset</button></div>
+  </div>
+</section>
+</main>
+<footer>Lexi · built with the Web Speech API</footer>
+
+<script>
+/* =====================================================================
+   LEXI – vocabulary + voice logic (unchanged behaviour) with UI hooks
+   ===================================================================== */
+const WORDS=[
+["ephemeral","easy","lasting for a very short time","The beauty of cherry blossoms is ephemeral."],
+["candid","easy","honest and direct, even when it is uncomfortable","She gave me a candid answer about my chances."],
+["reluctant","easy","unwilling and hesitant to do something","He was reluctant to speak in front of the class."],
+["meticulous","easy","showing great attention to detail","A meticulous editor, she caught every typo."],
+["resilient","easy","able to recover quickly from difficulty","Children are often more resilient than we expect."],
+["ambiguous","easy","open to more than one meaning","The ending of the film was deliberately ambiguous."],
+["frugal","easy","careful about spending money","Their frugal lifestyle let them retire early."],
+["eloquent","easy","fluent and persuasive in speaking or writing","Her eloquent speech moved the audience."],
+["pragmatic","easy","dealing with things in a practical, realistic way","We need a pragmatic solution, not a perfect one."],
+["gregarious","easy","fond of company and sociable","He is gregarious and loves hosting parties."],
+["obsequious","hard","too eager to please or obey someone important","The obsequious assistant agreed with every word the boss said."],
+["ubiquitous","hard","present or found everywhere","Smartphones have become ubiquitous."],
+["equivocal","hard","deliberately unclear, so as to avoid commitment","His equivocal reply left everyone guessing."],
+["pernicious","hard","having a harmful effect, often gradually","The pernicious rumor slowly ruined her reputation."],
+["laconic","hard","using very few words","His laconic reply was simply, fine."],
+["inscrutable","hard","impossible to understand or interpret","The judge's face was inscrutable."],
+["capricious","hard","given to sudden, unpredictable changes of mood","The capricious weather ruined our picnic."],
+["magnanimous","hard","generous and forgiving, especially toward a rival","The magnanimous winner praised her opponent."],
+["sycophant","hard","a person who flatters the powerful to gain advantage","The king was surrounded by sycophants."],
+["ostentatious","hard","designed to impress or attract attention, showy","They lived in an ostentatious mansion."]
+].map(([w,l,d,e])=>({w,l,d,e}));
+
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const synth=window.speechSynthesis;
+let S=null,rec=null,voiceOK=!!SR,busy=false,token=0,CUR=null;
+
+/* ---------- saved data (this browser only) ---------- */
+const KEY='lexi.v2';
+const DEF={T:{correct:0,wrong:0,skipped:0,completed:0,sessions:0,best:0},words:{},days:{},act:[],sess:[],set:{speak:true,rate:.95,level:'easy',count:6,reduce:false}};
+const clone=o=>JSON.parse(JSON.stringify(o));
+function loadD(){try{const j=JSON.parse(localStorage.getItem(KEY)||'null');if(j)return{...clone(DEF),...j,T:{...DEF.T,...j.T},set:{...DEF.set,...j.set}}}catch(e){}return clone(DEF)}
+let D=loadD();
+function saveD(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}
+const today=()=>new Date().toLocaleDateString('en-CA');
+function record(kind,w){
+  const T=D.T,wd=D.words[w]||(D.words[w]={c:0,m:0}),dd=D.days[today()]||(D.days[today()]={c:0,m:0});
+  if(kind==='ok'){T.correct++;T.completed++;wd.c++;dd.c++;T.best=Math.max(T.best,S?S.streak:0)}
+  if(kind==='miss'){T.wrong++;T.completed++;wd.m++;dd.m++}
+  if(kind==='skip'){T.skipped++;wd.m++;dd.m++}
+  D.act.unshift({w,r:kind,t:Date.now()});D.act.length=Math.min(D.act.length,40);
+  saveD();
+}
+
+/* ---------- orb state bridge (drives the 3D orb + CSS fallback) ---------- */
+function orbState(s){document.body.dataset.orb=s||'';window.__orb&&window.__orb.set(s||'idle')}
+function flash(k){window.__orb&&window.__orb.flash(k)}
+
+function log(t,c,kind){
+  const L=$('log');const e=L.querySelector('.empty');if(e)e.remove();
+  const d=document.createElement('div');d.className='m '+c+(kind?' '+kind:'');
+  if(kind){const g=document.createElement('span');g.className='tag';g.textContent={ok:'Correct',no:'Not quite',hint:'Hint'}[kind];d.appendChild(g)}
+  d.appendChild(document.createTextNode(t));L.appendChild(d);L.scrollTop=1e6;
+  if(CUR){CUR.msgs.push([c,t,kind||'']);if(c==='u'&&!CUR.saved){CUR.saved=true;D.sess.unshift(CUR);D.sess.length=Math.min(D.sess.length,25)}if(CUR.saved){CUR.msgs.length=Math.min(CUR.msgs.length,240);saveD()}}
+}
+function setUI(state,text){orbState(state==='speak'?'speak':state==='listen'?'listen':state==='think'?'think':'');$('status').textContent=text||''}
+function stats(){
+  $('sc').textContent=S?S.score:0;$('st').textContent=S?S.streak:0;
+  $('pr').textContent=S?Math.min(S.done,S.total)+'/'+S.total:'0/0';
+  $('prbar').style.width=S&&S.total?Math.min(100,S.done/S.total*100)+'%':'0%';
+  if(CUR&&S){CUR.score=S.score;CUR.total=S.total}
+}
+
+function say(text,kind){return new Promise(async res=>{log(text,'a',kind);
+ if(!synth||!D.set.speak){await sleep(kind?500:350);res();return}
+ synth.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=D.set.rate;u.lang='en-US';
+ const v=synth.getVoices().find(v=>/en[-_]US/.test(v.lang)&&/natural|google|samantha|aria|jenny/i.test(v.name))||synth.getVoices().find(v=>/^en/.test(v.lang));if(v)u.voice=v;
+ u.onstart=()=>setUI('speak','Lexi is speaking…');u.onend=u.onerror=()=>{setUI('','');res()};synth.speak(u);})}
+
+function listen(){return new Promise(res=>{if(!voiceOK){res(null);return}
+ try{rec=new SR()}catch(e){voiceOK=false;res(null);return}
+ rec.lang='en-US';rec.maxAlternatives=5;rec.interimResults=false;let got=null;
+ rec.onstart=()=>setUI('listen','Listening… say the word');
+ rec.onresult=e=>{got=[...e.results[0]].map(a=>a.transcript)};
+ rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){voiceOK=false;$('note').textContent='Microphone blocked – type your answers instead, or allow mic access and reload.'}};
+ rec.onend=()=>{setUI('','');res(got)};
+ try{rec.start()}catch(e){res(null)}})}
+
+const norm=s=>s.toLowerCase().replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
+function lev(a,b){const m=[...Array(a.length+1)].map((_,i)=>[i]);for(let j=1;j<=b.length;j++)m[0][j]=j;
+ for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)m[i][j]=Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return m[a.length][b.length]}
+function isMatch(alts,w){return alts.some(a=>norm(a).split(' ').some(t=>t===w||(w.length>6&&lev(t,w)<=2)||(w.length>4&&lev(t,w)<=1)))}
+function cmd(alts){const t=alts.map(norm).join('|');
+ if(/\b(skip|next|pass|i don t know|dont know)\b/.test(t))return'skip';
+ if(/\bhint|clue|help\b/.test(t))return'hint';
+ if(/\b(repeat|again|say that)\b/.test(t))return'repeat';return null}
+
+function stopAudio(){synth&&synth.cancel();rec&&rec.abort&&rec.abort();busy=false}
+
+function start(){
+ stopAudio();token++;
+ const lv=$('level').value;let pool=WORDS.filter(x=>lv==='all'||x.l===lv).sort(()=>Math.random()-.5).slice(0,D.set.count);
+ S={q:pool,i:0,score:0,streak:0,done:0,total:pool.length,tries:0,hints:0,missed:[]};
+ CUR={id:Date.now(),t:Date.now(),level:lv,score:0,total:pool.length,msgs:[],saved:false};D.T.sessions++;saveD();
+ $('log').innerHTML='';stats();$('start').textContent='↻ Restart';
+ run(token,true);
+}
+async function run(tk,first){
+ if(tk!==token)return;
+ if(S.i>=S.q.length){
+  if(S.missed.length&&!S.retry){S.retry=true;S.q=S.q.concat(S.missed);S.missed=[];S.total=S.q.length;stats();
+   await say("Let's give the tricky ones another try.");}
+  else{await say(`Session complete! You got ${S.score} right out of ${S.total}. Keep it up – press Restart for a fresh set.`);setUI('','Session complete 🎉');flash('ok');S.finished=true;return}
+ }
+ const cur=S.q[S.i];S.tries=0;S.hints=0;stats();
+ let intro=first?"Hi, I'm Lexi! I'll read a definition, and you say the word. ":"";
+ await say(`${intro}Word ${S.i+1}. It means: ${cur.d}. What's the word?`);
+ turn(tk);
+}
+async function turn(tk){
+ if(tk!==token||busy)return;
+ const cur=S.q[S.i];
+ if(!voiceOK){setUI('','Type your answer below');return}
+ busy=true;const alts=await listen();busy=false;if(tk!==token)return;
+ if(!alts){setUI('',"Didn't catch that – tap the mic or type");return}
+ handle(alts.join(' / ').split(' / ')[0],alts);
+}
+async function handle(shown,alts){
+ if(!S)return;const tk=token,cur=S.q[S.i];log(shown,'u');
+ setUI('think','Thinking…');await sleep(document.documentElement.dataset.motion==='reduce'?0:420);if(tk!==token)return;setUI('','');
+ const c=cmd(alts);
+ if(c==='hint')return hint();
+ if(c==='repeat'){await say(`It means: ${cur.d}.`);return turn(tk)}
+ if(c==='skip'){S.streak=0;S.missed.push(cur);record('skip',cur.w);stats();await say(`No problem. The word was ${cur.w}, spelled ${cur.w.split('').join(', ')}. Example: ${cur.e}`);return next(tk)}
+ if(isMatch(alts,cur.w)){
+  S.score++;S.streak++;S.done++;stats();record('ok',cur.w);flash('ok');
+  const praise=["Correct!","Nice one!","Exactly right!","Well done!"][S.streak%4];
+  await say(`${praise} ${cur.w}. For example: ${cur.e}`,'ok');return next(tk);
+ }
+ S.tries++;S.streak=0;stats();flash('no');
+ if(S.tries>=2){S.missed.push(cur);S.done++;stats();record('miss',cur.w);await say(`The word is ${cur.w}, spelled ${cur.w.split('').join(', ')}. Example: ${cur.e}`,'no');return next(tk)}
+ await say(`Close, but not quite. Try once more, or say hint.`,'no');turn(tk);
+}
+async function hint(){
+ if(!S)return;const tk=token,cur=S.q[S.i];S.hints++;
+ const h=S.hints===1?`It starts with "${cur.w[0].toUpperCase()}" and has ${cur.w.length} letters.`:`Fill in the blank: ${cur.e.replace(new RegExp(cur.w,'i'),'blank')}`;
+ await say(h,'hint');turn(tk);
+}
+function next(tk){if(tk!==token)return;S.i++;run(tk)}
+
+$('start').onclick=start;
+$('send').onclick=submit;$('typed').onkeydown=e=>{if(e.key==='Enter')submit()};
+function submit(){const v=$('typed').value.trim();if(!v)return;if(!S){start();return}if(S.finished)return;$('typed').value='';stopAudio();handle(v,[v])}
+$('mic').onclick=()=>{if(!S){start();return}if(S.finished)return;if(!SR){$('note').textContent='Speech recognition isn’t supported in this browser – please type.';return}voiceOK=true;synth&&synth.cancel();rec&&rec.abort&&rec.abort();busy=false;turn(token)};
+$('hint').onclick=()=>{if(!S||S.finished)return;stopAudio();hint()};
+$('rep').onclick=async()=>{if(!S||S.finished)return;stopAudio();await say(`It means: ${S.q[S.i].d}.`);turn(token)};
+$('skip').onclick=()=>{if(!S||S.finished)return;stopAudio();handle('skip',['skip'])};
+if(!SR)$('note').textContent='Speech recognition isn’t available in this browser, so Lexi will talk and you can type answers. Try Chrome, Edge or Safari for full voice.';
+if(synth)synth.getVoices();
+
+/* =====================================================================
+   UI – navigation, pages, settings
+   ===================================================================== */
+const VIEWS=['home','practice','bank','progress','history','settings'];
+const TITLES={home:'Lexi – Voice Vocabulary Coach',practice:'Practice · Lexi',bank:'Word Bank · Lexi',progress:'Progress · Lexi',history:'History · Lexi',settings:'Settings · Lexi'};
+const reducedMotion=()=>matchMedia('(prefers-reduced-motion: reduce)').matches||D.set.reduce;
+function applyMotion(){document.documentElement.dataset.motion=reducedMotion()?'reduce':'';window.__orb&&window.__orb.dirty()}
+
+let view='home';
+function go(v,opts={}){
+ if(!VIEWS.includes(v))v='home';
+ if(view==='practice'&&v!=='practice'){stopAudio();if(S&&!S.finished)orbState('')}
+ view=v;document.body.dataset.view=v;
+ VIEWS.forEach(n=>$('v-'+n).classList.toggle('on',n===v));
+ document.querySelectorAll('[data-go]').forEach(b=>{if(b.classList.contains('navcta'))return;b.toggleAttribute('aria-current',false);if(b.dataset.go===v)b.setAttribute('aria-current','page')});
+ document.querySelectorAll('.links button[aria-current],.tabbar button[aria-current]').forEach(b=>{if(b.dataset.go!==v)b.removeAttribute('aria-current')});
+ document.title=TITLES[v];
+ if(!opts.keepHash)history.replaceState(null,'','#'+v);
+ if(v==='bank')renderBank();if(v==='progress')renderProgress();if(v==='history')renderHistory();if(v==='settings')syncSettings();
+ if(v==='practice'&&S&&!S.finished&&!document.body.dataset.orb)$('status').textContent='Welcome back – tap Repeat to hear the question';
+ if(!opts.noScroll)window.scrollTo({top:0,behavior:reducedMotion()?'auto':'smooth'});
+ window.__orb&&window.__orb.dirty();
+}
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-go]');if(!b)return;
+ const v=b.dataset.go;
+ if(b.hasAttribute('data-start')){go('practice');if(!S||S.finished)start();else if(!S.finished){/* resume */}return}
+ go(v);
+});
+$('howbtn').onclick=()=>$('how').scrollIntoView({behavior:reducedMotion()?'auto':'smooth'});
+addEventListener('hashchange',()=>go(location.hash.slice(1),{keepHash:true}));
+
+/* ---------- word bank ---------- */
+let bankF='all';
+function renderBank(){
+ const q=$('bsearch').value.trim().toLowerCase();
+ const list=WORDS.filter(x=>(bankF==='all'||x.l===bankF)&&(!q||x.w.includes(q)||x.d.toLowerCase().includes(q)));
+ $('wgrid').innerHTML=list.length?'':'<div class="none">No words match that search.</div>';
+ list.forEach(x=>{
+  const st=D.words[x.w];const el=document.createElement('div');el.className='glass wcard';
+  el.innerHTML=`<h3><span>${x.w}</span><span class="lv ${x.l}">${x.l==='easy'?'Everyday':'Advanced'}</span></h3><p>${x.d}</p><p class="ex">“${x.e}”</p><div class="wfoot"><span class="learned">${st&&st.c?'✓ Learned · '+st.c+'×':''}</span><button class="say" aria-label="Hear ${x.w}"><svg width="20" height="20"><use href="#i-speaker"/></svg></button></div>`;
+  el.querySelector('.say').onclick=()=>{if(!synth)return;synth.cancel();const u=new SpeechSynthesisUtterance(`${x.w}. ${x.d}.`);u.rate=D.set.rate;u.lang='en-US';synth.speak(u)};
+  $('wgrid').appendChild(el);
+ });
+}
+$('bsearch').oninput=renderBank;
+document.querySelectorAll('.filters button').forEach(b=>b.onclick=()=>{bankF=b.dataset.f;document.querySelectorAll('.filters button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderBank()});
+
+/* ---------- progress ---------- */
+function ringSVG(p,id){const r=30,c=2*Math.PI*r,o=c*(1-Math.max(0,Math.min(1,p)));
+ return `<svg viewBox="0 0 72 72"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset="1" stop-color="#ff8ac6"/></linearGradient></defs><circle cx="36" cy="36" r="${r}" fill="none" stroke="rgba(124,92,255,.14)" stroke-width="7"/><circle cx="36" cy="36" r="${r}" fill="none" stroke="url(#${id})" stroke-width="7" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${o}"/></svg>`}
+function ago(t){const s=(Date.now()-t)/1000;if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+' min ago';if(s<86400)return Math.floor(s/3600)+' h ago';return Math.floor(s/86400)+' d ago'}
+function renderProgress(){
+ const T=D.T,att=T.correct+T.wrong+T.skipped,acc=att?Math.round(T.correct/att*100):null;
+ const cur=S?S.streak:0,learned=WORDS.filter(x=>D.words[x.w]&&D.words[x.w].c>0).length;
+ const cards=[
+  ['Correct answers',T.correct,'all time',Math.min(1,T.correct/50),String(Math.min(T.correct,50))],
+  ['Current streak',cur,'best '+T.best,T.best?cur/T.best:0,cur+'🔥'],
+  ['Words completed',T.completed,'of '+(T.completed+T.skipped)+' attempted',Math.min(1,T.completed/60),'✓'],
+  ['Accuracy',acc===null?'—':acc+'%','across '+att+' answers',acc===null?0:acc/100,acc===null?'–':acc+'%']
+ ];
+ $('sgrid').innerHTML=cards.map((c,i)=>`<div class="glass scard"><div class="ring">${ringSVG(c[3],'rg'+i)}<span>${c[4].length>5?'':c[4]}</span></div><div><b>${c[1]}</b><small>${c[0]}<br>${c[2]}</small></div></div>`).join('');
+ const lvl=l=>{const a=WORDS.filter(x=>x.l===l),n=a.filter(x=>D.words[x.w]&&D.words[x.w].c>0).length;return[n,a.length]};
+ const e=lvl('easy'),h=lvl('hard');
+ $('lpsub').textContent=learned+' of '+WORDS.length+' words';
+ $('lp').innerHTML=`<div class="ring">${ringSVG(learned/WORDS.length,'rgl')}<span>${Math.round(learned/WORDS.length*100)}%</span></div><div class="lvbars"><div><div><span>Everyday</span><span>${e[0]}/${e[1]}</span></div><div class="bar" style="margin:0"><i style="width:${e[0]/e[1]*100}%"></i></div></div><div><div><span>Advanced</span><span>${h[0]}/${h[1]}</span></div><div class="bar" style="margin:0"><i style="width:${h[0]/h[1]*100}%"></i></div></div></div>`;
+ const days=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return{k:d.toLocaleDateString('en-CA'),n:d.toLocaleDateString('en',{weekday:'short'})}});
+ const vals=days.map(d=>(D.days[d.k]||{c:0}).c),mx=Math.max(1,...vals);
+ $('chart').innerHTML=days.map((d,i)=>`<div><b>${vals[i]||''}</b><i style="height:${vals[i]?Math.max(8,vals[i]/mx*100):4}%;${vals[i]?'':'opacity:.25'}"></i><em>${d.n}</em></div>`).join('');
+ const col={ok:'var(--mint)',miss:'var(--rose)',skip:'var(--amber)'},txt={ok:'answered correctly',miss:'missed',skip:'skipped'};
+ $('act').innerHTML=D.act.length?D.act.slice(0,8).map(a=>`<div><i style="background:${col[a.r]}"></i><b>${a.w}</b><em>${txt[a.r]}</em><span>${ago(a.t)}</span></div>`).join(''):'<div class="none">No activity yet – start a practice session and your words will appear here.</div>';
+}
+
+/* ---------- history ---------- */
+function renderHistory(){
+ const L=$('hlist');
+ if(!D.sess.length){L.innerHTML='<div class="glass card none">No conversations yet. Answer a word in Practice and your session will be saved here.</div>';return}
+ L.innerHTML='';
+ D.sess.forEach(s=>{
+  const dt=new Date(s.t),lab={easy:'Everyday',hard:'Advanced',all:'Mixed'}[s.level]||'';
+  const el=document.createElement('details');el.className='glass hs';
+  el.innerHTML=`<summary><div>${dt.toLocaleDateString('en',{day:'numeric',month:'short'})} · ${dt.toLocaleTimeString('en',{hour:'numeric',minute:'2-digit'})}<br><small>${lab} · ${s.msgs.filter(m=>m[0]==='u').length} answers</small></div><span>${s.score}/${s.total}</span></summary><div class="hmsgs"></div>`;
+  const box=el.querySelector('.hmsgs');
+  s.msgs.forEach(([c,t,k])=>{const d=document.createElement('div');d.className='m '+c+(k?' '+k:'');if(k){const g=document.createElement('span');g.className='tag';g.textContent={ok:'Correct',no:'Not quite',hint:'Hint'}[k];d.appendChild(g)}d.appendChild(document.createTextNode(t));box.appendChild(d)});
+  L.appendChild(el);
+ });
+}
+
+/* ---------- settings ---------- */
+function syncSettings(){
+ $('s-speak').checked=D.set.speak;$('s-rate').value=D.set.rate;$('s-ratev').textContent=D.set.rate.toFixed(2)+'× normal speed';
+ $('s-level').value=D.set.level;$('s-count').value=String(D.set.count);$('s-reduce').checked=D.set.reduce;
+}
+$('s-speak').onchange=e=>{D.set.speak=e.target.checked;if(!D.set.speak)synth&&synth.cancel();saveD()};
+$('s-rate').oninput=e=>{D.set.rate=+e.target.value;$('s-ratev').textContent=D.set.rate.toFixed(2)+'× normal speed';saveD()};
+$('s-level').onchange=e=>{D.set.level=e.target.value;$('level').value=D.set.level;saveD()};
+$('s-count').onchange=e=>{D.set.count=+e.target.value;saveD()};
+$('s-reduce').onchange=e=>{D.set.reduce=e.target.checked;saveD();applyMotion()};
+$('s-clear').onclick=()=>{if(confirm('Reset all saved stats, history and settings in this browser?')){localStorage.removeItem(KEY);D=loadD();S=null;CUR=null;stopAudio();$('log').innerHTML='';initLog();stats();$('start').textContent='▶ Start';syncSettings();$('level').value=D.set.level;applyMotion();renderProgress();setUI('','Press Start to begin')}};
+$('level').onchange=()=>{D.set.level=$('level').value;saveD()};
+
+function initLog(){$('log').innerHTML='<div class="empty">Press <b>Start</b> and Lexi will read a definition.<br>Say the word, or type it below.</div>'}
+/* waveform bars */
+(function(){const w=$('wave');for(let i=0;i<30;i++){const b=document.createElement('i');b.style.setProperty('--i',i);b.style.setProperty('--a',(.3+Math.abs(Math.sin(i*1.7))*.7).toFixed(2));w.appendChild(b)}})();
+
+/* init */
+$('level').value=D.set.level;initLog();stats();applyMotion();
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener&&matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',applyMotion);
+go(location.hash.slice(1)||'home',{keepHash:true,noScroll:true});
+</script>
+
+<script>
+/* =====================================================================
+   3D GLASS ORB (Three.js, lazy-loaded). Falls back to the CSS orb if
+   WebGL or the library is unavailable.
+   ===================================================================== */
+(function(){
+ const THREE_URL='https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js';
+ const stub={set(){},flash(){},dirty(){}};window.__orb=stub;
+ function load(){const s=document.createElement('script');s.src=THREE_URL;s.async=true;s.onload=()=>{try{init()}catch(e){console.warn('Lexi: 3D orb unavailable',e)}};s.onerror=()=>console.warn('Lexi: could not load Three.js – using CSS orb');document.head.appendChild(s)}
+ (window.requestIdleCallback||(f=>setTimeout(f,300)))(load,{timeout:1500});
+
+ function init(){
+  const THREE=window.THREE,canvas=document.getElementById('gl');
+  let renderer;try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'})}catch(e){return}
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));
+  renderer.outputEncoding=THREE.sRGBEncoding;
+  const scene=new THREE.Scene();
+  let W=innerWidth,H=innerHeight;
+  const cam=new THREE.OrthographicCamera(-W/2,W/2,H/2,-H/2,1,4000);cam.position.z=1500;
+
+  const tex=(w,h,fn)=>{const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return t};
+  const blob=(x,X,Y,R,col)=>{const g=x.createRadialGradient(X,Y,0,X,Y,R);g.addColorStop(0,col);g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,x.canvas.width,x.canvas.height)};
+
+  /* pastel backdrop (what the glass refracts) */
+  const back=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:tex(1024,1024,(x,w,h)=>{
+    const g=x.createLinearGradient(0,0,w,h);g.addColorStop(0,'#fdeef7');g.addColorStop(.5,'#f1eafd');g.addColorStop(1,'#e6f3fd');x.fillStyle=g;x.fillRect(0,0,w,h);
+    blob(x,.1*w,.08*h,.5*w,'rgba(255,165,208,.6)');blob(x,.95*w,.1*h,.45*w,'rgba(188,168,255,.5)');blob(x,.82*w,.98*h,.55*w,'rgba(128,214,255,.55)');blob(x,.08*w,.92*h,.35*w,'rgba(255,200,230,.4)')})}));
+  back.position.z=-900;scene.add(back);
+
+  /* procedural studio environment: pastel dome + soft boxes (gives the crisp glass reflections) */
+  const envScene=new THREE.Scene();
+  envScene.add(new THREE.Mesh(new THREE.SphereGeometry(50,32,16),new THREE.MeshBasicMaterial({side:THREE.BackSide,map:tex(8,256,(x,w,h)=>{const g=x.createLinearGradient(0,0,0,h);[[0,'#ffffff'],[.22,'#ffd0eb'],[.5,'#e3d9ff'],[.76,'#c6ecff'],[1,'#fff0fa']].forEach(s=>g.addColorStop(s[0],s[1]));x.fillStyle=g;x.fillRect(0,0,w,h)})})));
+  const softbox=(w,h,p,k,c)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({side:THREE.DoubleSide,color:new THREE.Color(c||'#ffffff').multiplyScalar(k)}));m.position.set(p[0],p[1],p[2]);m.lookAt(0,0,0);envScene.add(m)};
+  softbox(34,20,[-26,26,22],6);softbox(9,38,[34,4,14],4.5,'#eaf6ff');softbox(28,8,[0,-34,10],2.6,'#ffe2f3');softbox(14,14,[22,32,-10],3);
+  const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(envScene,0.02).texture;pm.dispose();
+
+  /* the orb */
+  const orb=new THREE.Group();scene.add(orb);
+  const glass=new THREE.Mesh(new THREE.SphereGeometry(1,96,64),new THREE.MeshPhysicalMaterial({color:0xffffff,metalness:0,roughness:.04,transmission:1,thickness:.45,ior:1.35,iridescence:1,iridescenceIOR:1.3,iridescenceThicknessRange:[100,520],clearcoat:1,clearcoatRoughness:.03,envMapIntensity:1.15}));
+  orb.add(glass);
+  const U={t:{value:0},glow:{value:.6},tint:{value:new THREE.Color('#ffffff')},tintAmt:{value:0}};
+  const core=new THREE.Mesh(new THREE.SphereGeometry(.7,64,48),new THREE.ShaderMaterial({uniforms:U,
+   vertexShader:'varying vec3 vP;varying vec3 vN;void main(){vP=position;vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+   fragmentShader:'uniform float t,glow,tintAmt;uniform vec3 tint;varying vec3 vP;varying vec3 vN;float nz(vec3 p){return sin(p.x*3.1+t*.6)*sin(p.y*2.7-t*.5)*sin(p.z*3.3+t*.4);}void main(){vec3 p=normalize(vP);float k=p.y*.5+.5+.28*nz(p*1.4)+.14*sin(p.x*2.+t*.7);vec3 pink=vec3(1.,.55,.8),lav=vec3(.72,.62,1.),cy=vec3(.45,.9,1.);vec3 c=mix(pink,lav,smoothstep(.1,.5,k));c=mix(c,cy,smoothstep(.45,.95,k));float rim=pow(1.-abs(dot(vN,vec3(0.,0.,1.))),2.);c+=rim*.22;c=mix(c,tint,tintAmt);c*=.82+glow*.32;gl_FragColor=vec4(c,1.);}'}));
+  orb.add(core);
+  const halo=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({transparent:true,depthWrite:false,map:tex(256,256,(x,w,h)=>{const g=x.createRadialGradient(w/2,h/2,w*.18,w/2,h/2,w/2);g.addColorStop(0,'rgba(255,150,215,.55)');g.addColorStop(.5,'rgba(170,150,255,.28)');g.addColorStop(1,'rgba(120,220,255,0)');x.fillStyle=g;x.fillRect(0,0,w,h)})}));
+  halo.position.z=-60;orb.add(halo);
+
+  /* expanding rings (listening / speaking) */
+  const rings=[0,1,2,3].map(()=>{const m=new THREE.Mesh(new THREE.RingGeometry(1,1.012,160),new THREE.MeshBasicMaterial({color:0xb9a6ff,transparent:true,opacity:0,depthWrite:false}));m.position.z=40;orb.add(m);return m});
+
+  /* particles */
+  const dot=tex(64,64,(x,w,h)=>{const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.45,'rgba(255,255,255,.85)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,w,h)});
+  const pg=new THREE.Group();orb.add(pg);
+  [[34,5,'#ff9ccc'],[28,8,'#a994ff'],[22,12,'#74dcff']].forEach(([n,size,col])=>{const a=new Float32Array(n*3);for(let i=0;i<n;i++){const ang=Math.random()*6.283,r=1.25+Math.random()*1.35;a[i*3]=Math.cos(ang)*r;a[i*3+1]=Math.sin(ang)*r;a[i*3+2]=Math.random()*1.2-.2}
+   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));
+   pg.add(new THREE.Points(g,new THREE.PointsMaterial({size,map:dot,color:col,transparent:true,opacity:.85,depthWrite:false,sizeAttenuation:false})))});
+
+  /* floating pearl spheres */
+  const pearls=[['#ff9fd0',26,.1,.8,0],['#b9a4ff',18,.93,.24,2],['#8fdcff',34,.88,.82,4],['#a9d4ff',16,.2,.12,3]].map(([c,r,fx,fy,ph])=>{
+   const m=new THREE.Mesh(new THREE.SphereGeometry(1,40,28),new THREE.MeshPhysicalMaterial({color:c,roughness:.22,metalness:0,clearcoat:.8,iridescence:.6,iridescenceIOR:1.25,envMapIntensity:.55}));m.position.z=-200;scene.add(m);return{m,r,fx,fy,ph}});
+
+  const lightD=new THREE.DirectionalLight(0xffffff,.9);lightD.position.set(-300,400,600);scene.add(lightD);
+
+  /* state machine */
+  const TG={idle:{glow:.6,ringA:0,ringRate:.4,spin:.12,pulse:0},listen:{glow:.95,ringA:.55,ringRate:.55,spin:.2,pulse:.03},think:{glow:.8,ringA:0,ringRate:.4,spin:1.1,pulse:.01},speak:{glow:1.25,ringA:.5,ringRate:1.15,spin:.25,pulse:.04}};
+  const cur={glow:.6,ringA:0,ringRate:.4,spin:.12,pulse:0};let mode='idle',flashT=0,flashCol=new THREE.Color('#9ff0cf'),dirty=true,t=0,last=performance.now();
+  const P={x:0,y:0,r:140},Q={x:0,y:0,r:140};let placed=false;
+  const ptr={x:0,y:0,sx:0,sy:0};addEventListener('pointermove',e=>{ptr.x=e.clientX/W*2-1;ptr.y=e.clientY/H*2-1},{passive:true});
+  addEventListener('scroll',()=>{dirty=true},{passive:true});
+
+  function slot(){return document.querySelector('.view.on [data-slot]')}
+  function resize(){W=innerWidth;H=innerHeight;renderer.setSize(W,H,false);cam.left=-W/2;cam.right=W/2;cam.top=H/2;cam.bottom=-H/2;cam.updateProjectionMatrix();back.scale.set(W*1.15,H*1.15,1);dirty=true}
+  resize();addEventListener('resize',resize);
+  canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();document.documentElement.classList.remove('gl-on');window.__orb=stub});
+
+  function frame(now){
+   requestAnimationFrame(frame);
+   const motion=document.documentElement.dataset.motion!=='reduce';
+   const dt=Math.min(.05,(now-last)/1000);last=now;
+   if(!motion&&!dirty)return;
+   dirty=false;if(motion)t+=dt;
+   const el=slot();if(el){const r=el.getBoundingClientRect();if(r.width>8){Q.x=r.left+r.width/2-W/2;Q.y=-(r.top+r.height/2-H/2);Q.r=Math.min(r.width,r.height)/2*.97}}
+   const k=(motion&&placed)?1-Math.pow(.0008,dt):1;placed=true;
+   P.x+=(Q.x-P.x)*k;P.y+=(Q.y-P.y)*k;P.r+=(Q.r-P.r)*k;
+   const g=TG[mode],k2=motion?1-Math.pow(.02,dt):1;
+   for(const key in g)cur[key]+=(g[key]-cur[key])*k2;
+   const amp=(Math.sin(t*9)*.5+.5)*(Math.sin(t*3.3)*.5+.5);
+   const speaking=mode==='speak',listening=mode==='listen';
+   const bob=motion?Math.sin(t*1.1)*P.r*.035:0;
+   const pulse=motion?(listening?Math.sin(t*3.2)*.5+.5:speaking?amp:Math.sin(t*1.1)*.4+.4):0;
+   const R=P.r*(1+cur.pulse*pulse+(motion?.01*Math.sin(t*1.3):0));
+   orb.position.set(P.x,P.y+bob,0);orb.scale.setScalar(R);
+   ptr.sx+=(ptr.x-ptr.sx)*.06;ptr.sy+=(ptr.y-ptr.sy)*.06;
+   core.rotation.y+=cur.spin*dt;core.rotation.x=.3*(motion?ptr.sy:0)+.2;core.rotation.z+=cur.spin*.4*dt;
+   glass.rotation.y=motion?ptr.sx*.3:0;
+   pg.rotation.z+=cur.spin*(mode==='think'?1.4:.35)*dt;pg.visible=P.r>90;
+   U.t.value=t;
+   let fl=0;if(flashT>0){flashT=Math.max(0,flashT-dt);fl=flashT/.9}
+   U.glow.value=cur.glow+(speaking?.18*amp:0);U.tint.value.copy(flashCol);U.tintAmt.value=fl*.55;
+   halo.scale.set(3.1,3.1,1);halo.material.opacity=.45+.35*(cur.glow-.5)+fl*.3;
+   rings.forEach((m,i)=>{const ph=((t*cur.ringRate+i/rings.length)%1);const s=1.04+ph*.8;m.scale.set(s,s,1);m.material.opacity=Math.pow(1-ph,1.6)*cur.ringA;m.material.color.set(speaking&&i%2?0x7fdcff:0xb9a6ff)});
+   const sm=W<700?.65:1;
+   pearls.forEach(p=>{const x=p.fx*W-W/2,y=-(p.fy*H-H/2)+(motion?Math.sin(t*.7+p.ph)*12:0);p.m.position.set(x,y,-200);p.m.scale.setScalar(p.r*sm)});
+   renderer.render(scene,cam);
+  }
+  requestAnimationFrame(frame);
+
+  window.__orb={
+   set(s){mode=TG[s]?s:'idle';dirty=true},
+   flash(kind){flashCol.set(kind==='ok'?'#8fe9c4':'#ffa9bf');flashT=.9;dirty=true},
+   dirty(){dirty=true}
+  };
+  document.documentElement.classList.add('gl-on');
+  /* sync with current state in case the voice flow started before the orb was ready */
+  const s0=document.body.dataset.orb;if(s0)window.__orb.set(s0);
+ }
+})();
+</script>
+</body>
+</html>
